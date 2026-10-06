@@ -23,22 +23,38 @@ def initialize(db=DB):
         connection.execute('CREATE TABLE IF NOT EXISTS study_progress (user_id TEXT NOT NULL, item_id TEXT NOT NULL, kind TEXT NOT NULL, payload TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY(user_id,item_id))')
 
 def validate(body):
-    if not isinstance(body, dict) or body.get('id') not in IDS or not isinstance(body.get('value'), dict):
+    if not isinstance(body, dict) or 'id' not in body or not isinstance(body.get('value'), dict):
         raise ValueError('Unknown study item.')
-    kind, value = IDS[body['id']], body['value']
-    allowed = {'lesson','practice','pyqs','revision','notes'} if kind=='topic' else {'done','hours','notes'}
-    if value.keys()-allowed:
-        raise ValueError('Unknown progress field.')
-    for key, val in value.items():
-        if key=='notes':
-            if not isinstance(val,str) or len(val)>2000:
-                raise ValueError('Notes must be 2,000 characters or fewer.')
-        elif key=='hours':
-            if val is not None and (isinstance(val,bool) or not isinstance(val,(int,float)) or not math.isfinite(val) or not 0<=val<=24):
-                raise ValueError('Enter hours between 0 and 24.')
-        elif not isinstance(val,bool):
-            raise ValueError('Completion must be checked or unchecked.')
-    return kind
+    item_id = body['id']
+    if item_id in IDS:
+        kind, value = IDS[item_id], body['value']
+        allowed = {'lesson','practice','pyqs','revision','notes','confidence','pyqAttempted','pyqCorrect','keyPoints','doubtText','doubtResolved','lastStudied'} if kind=='topic' else {'done','hours','notes','rescheduledDate','originalDate'}
+        if value.keys()-allowed:
+            raise ValueError('Unknown progress field.')
+        for key, val in value.items():
+            if key in ('notes','keyPoints','doubtText'):
+                if not isinstance(val,str) or len(val)>2000:
+                    raise ValueError(f'{key} must be 2,000 characters or fewer.')
+            elif key=='hours':
+                if val is not None and (isinstance(val,bool) or not isinstance(val,(int,float)) or not math.isfinite(val) or not 0<=val<=24):
+                    raise ValueError('Enter hours between 0 and 24.')
+            elif key in ('pyqAttempted','pyqCorrect'):
+                if val is not None and (isinstance(val,bool) or not isinstance(val,int) or val<0):
+                    raise ValueError('Invalid question count.')
+            elif key=='confidence':
+                if val is not None and val not in ('low','medium','high','mastered',''):
+                    raise ValueError('Invalid confidence level.')
+            elif key in ('lesson','practice','pyqs','revision','done','doubtResolved'):
+                if not isinstance(val,bool):
+                    raise ValueError('Completion must be checked or unchecked.')
+            elif key in ('rescheduledDate','originalDate','lastStudied'):
+                if val is not None and not isinstance(val,str):
+                    raise ValueError('Invalid date format.')
+        return kind
+    elif isinstance(item_id, str) and item_id.startswith('__') and item_id.endswith('__'):
+        return 'meta'
+    else:
+        raise ValueError('Unknown study item.')
 
 def write_progress(body, db=DB):
     kind=validate(body)
