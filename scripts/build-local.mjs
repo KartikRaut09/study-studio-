@@ -1,0 +1,10 @@
+import {build} from 'esbuild';
+import {readFile,writeFile,copyFile} from 'node:fs/promises';
+import {fileURLToPath} from 'node:url';
+process.chdir(fileURLToPath(new URL('../',import.meta.url)));
+await build({entryPoints:['local-app/entry.tsx'],bundle:true,minify:true,platform:'browser',target:'es2020',jsx:'automatic',outfile:'local-app/app.js'});
+const css=(await readFile('app/globals.css','utf8')).replace("@import 'tailwindcss';",'')+await readFile('app/tracker.css','utf8');
+await writeFile('local-app/app.css',css);
+await copyFile('app/plan.json','local-app/plan.json');
+await copyFile('public/favicon.svg','local-app/favicon.svg');
+console.log('Local app rebuilt. Run: python local-app/server.py --open');

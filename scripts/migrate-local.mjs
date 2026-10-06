@@ -1,0 +1,12 @@
+import {mkdir,writeFile} from 'node:fs/promises';
+import path from 'node:path';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+const root=fileURLToPath(new URL('../',import.meta.url));
+process.chdir(root);
+await mkdir('.sites-runtime',{recursive:true});
+const config=path.join(root,'.sites-runtime','local-migrations.json');
+await writeFile(config,JSON.stringify({name:'study-studio-local',compatibility_date:'2026-05-15',d1_databases:[{binding:'DB',database_name:'site-creator-d1',database_id:'00000000-0000-4000-8000-000000000000',migrations_dir:path.join(root,'drizzle')}]}));
+const result=spawnSync(process.execPath,[path.join(root,'node_modules/wrangler/bin/wrangler.js'),'d1','migrations','apply','site-creator-d1','--local','--config',config,'--persist-to',path.join(root,'.wrangler/state')],{stdio:'inherit'});
+if(result.error)throw result.error;
+process.exitCode=result.status??1;

@@ -1,0 +1,8 @@
+Start with: python local-app/server.py --open (from the repository root).
+On Windows, you can also double-click Open Study Studio.cmd.
+
+The app is at http://127.0.0.1:8768 and saves to study-progress.sqlite3
+in this directory. Keep this file to preserve your checks, notes and hours.
+It is intentionally excluded from Git. A fresh clone starts with no progress.
+
+Read ../README.md for complete setup, backup, development and hosting details.
